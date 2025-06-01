@@ -204,6 +204,7 @@ def strava_callback():
 
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
+    print("Query parameters:", request.args)
     if request.method == 'GET':
         print('Query parameters:', request.args)
         mode = request.args.get('hub.mode')
