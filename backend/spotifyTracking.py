@@ -1,23 +1,28 @@
 import time
 import json
+import requests
+import os
 from datetime import datetime
+from dotenv import load_dotenv
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-from dotenv import load_dotenv
-import os
 
-# Load environment variables from .env
+# Load environment variables
 load_dotenv()
 
-# Set up Spotify auth from env variables
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI")
+BACKEND_URL = os.getenv("BACKEND_URL")  # e.g. https://runningtunes.onrender.com
+
+# Set up Spotify auth
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
-    client_id=os.getenv("SPOTIPY_CLIENT_ID"),
-    client_secret=os.getenv("SPOTIPY_CLIENT_SECRET"),
-    redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI", "https://runningtunes.onrender.com"),
+    client_id=SPOTIFY_CLIENT_ID,
+    client_secret=SPOTIFY_CLIENT_SECRET,
+    redirect_uri=SPOTIFY_REDIRECT_URI,
     scope="user-read-currently-playing user-read-playback-state"
 ))
 
-# Store songs in memory
 logged_songs = []
 
 def log_current_track():
@@ -32,14 +37,24 @@ def log_current_track():
         if not logged_songs or song != logged_songs[-1]:
             logged_songs.append(song)
             print(f"🎵 Logged: {song['name']} by {song['artist']} at {song['played_at']}")
+
+            try:
+                # Send to Flask backend
+                response = requests.post(f"{BACKEND_URL}/log-spotify", json=song)
+                if response.ok:
+                    print("✅ Sent to backend.")
+                else:
+                    print("⚠️ Failed to send to backend:", response.text)
+            except Exception as e:
+                print("❌ Error sending to backend:", e)
     else:
-        print("⏸️ No music playing.")
+        print("No music playing.")
 
 try:
-    print("🎧 Starting Spotify track logger (every 2 min)...")
+    print("🎧 Starting Spotify track logger...")
     while True:
         log_current_track()
-        time.sleep(120)  # Check every 2 minutes
+        time.sleep(120)  # every 2 minutes
 except KeyboardInterrupt:
     print("\n🛑 Logging stopped.")
     with open("spotify_log.json", "w") as f:
