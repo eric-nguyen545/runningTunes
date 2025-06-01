@@ -19,7 +19,7 @@ def serve_react(path):
 # ============ CONFIGURATION ============
 CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
 CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
-STRAVA_VERIFY_TOKEN = os.getenv('STRAVA_VERIFY_TOKEN')
+STRAVA_VERIFY_TOKEN = "gopherrunclub"
 
 DB_PATH = 'spotify_strava.db'
 YOUR_DOMAIN = os.getenv('YOUR_DOMAIN', 'https://runningtunes.onrender.com')  # Replace with your Render domain or use env
