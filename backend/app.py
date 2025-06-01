@@ -2,10 +2,19 @@ import os
 import json
 import sqlite3
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, redirect, session
+from flask import Flask, request, jsonify, redirect, session, send_from_directory
 import requests
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='build/static', static_url_path='/static')
+
+# Serve React App
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react(path):
+    if path != "" and os.path.exists(f"build/{path}"):
+        return send_from_directory('build', path)
+    else:
+        return send_from_directory('build', 'index.html')
 
 # ============ CONFIGURATION ============
 CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
