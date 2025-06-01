@@ -209,6 +209,9 @@ def webhook():
         challenge = request.args.get('hub.challenge')
         verify_token = request.args.get('hub.verify_token')
 
+        print(f"Incoming webhook verification: mode={mode}, token={verify_token}, challenge={challenge}")
+        print(f"Expected token: {STRAVA_VERIFY_TOKEN}")
+
         if mode == 'subscribe' and verify_token == STRAVA_VERIFY_TOKEN:
             return jsonify({'hub.challenge': challenge})
         return 'Verification failed', 403
