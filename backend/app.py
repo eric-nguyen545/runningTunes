@@ -2,7 +2,7 @@ import os
 import json
 import sqlite3
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, redirect
+from flask import Flask, request, jsonify, redirect, session
 import requests
 
 app = Flask(__name__)
@@ -240,6 +240,41 @@ def webhook():
                 return 'Failed to update Strava', 500
 
         return 'Ignored event', 200
+    
+# Mock user session example (implement your own login/session)
+@app.route('/api/user')
+def api_user():
+    # You should identify user by session/cookies or tokens
+    # For demo, pick first user from DB:
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT athlete_id FROM users LIMIT 1')
+    row = c.fetchone()
+    if not row:
+        return jsonify({'error': 'No user connected'}), 403
+
+    athlete_id = row[0]
+    # You can add more user info here
+    return jsonify({'athlete_id': athlete_id, 'athlete_name': 'Runner', 'last_sync': '2025-06-01 10:00:00'})
+
+@app.route('/api/runs')
+def api_runs():
+    # Fetch recent runs for user from your DB or Strava API
+    # This example returns dummy data - replace with your actual logic
+    example_runs = [
+        {
+            'id': 1,
+            'start_date': '2025-06-01T09:00:00Z',
+            'distance': 5000,
+            'elapsed_time': 1500,
+            'songs': [
+                {'name': 'Song A', 'artist': 'Artist A', 'played_at': '2025-06-01T09:05:00Z'},
+                {'name': 'Song B', 'artist': 'Artist B', 'played_at': '2025-06-01T09:10:00Z'},
+            ],
+        },
+        # Add more runs here
+    ]
+    return jsonify({'runs': example_runs})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
