@@ -204,53 +204,109 @@ def strava_callback():
 
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
-    print("Query parameters:", request.args)
+    print(f"=== WEBHOOK REQUEST ===")
+    print(f"Method: {request.method}")
+    print(f"URL: {request.url}")
+    print(f"Headers: {dict(request.headers)}")
+    print(f"Query parameters: {dict(request.args)}")
+    print(f"Form data: {dict(request.form)}")
+    if request.json:
+        print(f"JSON data: {request.json}")
+    print("=" * 50)
+    
     if request.method == 'GET':
-        print('Query parameters:', request.args)
+        # Strava webhook verification
         mode = request.args.get('hub.mode')
         verify_token = request.args.get('hub.verify_token')
         challenge = request.args.get('hub.challenge')
+        
         print(f"Verification request - mode: {mode}, token: {verify_token}, challenge: {challenge}")
+        print(f"Expected token: {STRAVA_VERIFY_TOKEN}")
+        
+        # Check if all required parameters are present
+        if not mode or not verify_token or not challenge:
+            print(f"Missing parameters - mode: {mode}, verify_token: {verify_token}, challenge: {challenge}")
+            return 'Missing required parameters', 400
+        
+        # Verify the mode and token
         if mode == 'subscribe' and verify_token == STRAVA_VERIFY_TOKEN:
-            return jsonify({'hub.challenge': challenge})
-        return 'Verification failed', 403
+            print(f"Verification successful, returning challenge: {challenge}")
+            # Return the challenge as JSON - this is what most implementations do
+            return jsonify({'hub.challenge': challenge}), 200
+        else:
+            print(f"Verification failed - mode: {mode} (expected: subscribe), token: {verify_token} (expected: {STRAVA_VERIFY_TOKEN})")
+            return 'Verification failed', 403
 
     if request.method == 'POST':
-        event = request.json
-        if not event:
-            return 'No data', 400
+        # Handle webhook events
+        try:
+            event = request.json
+            if not event:
+                print("No JSON data received")
+                return 'No data', 400
 
-        if event.get('object_type') == 'activity':
-            activity_id = event.get('object_id')
-            athlete_id = event.get('owner_id')
-            aspect_type = event.get('aspect_type')
+            print(f"Received event: {event}")
 
-            if is_activity_processed(activity_id):
-                return 'Already processed', 200
+            if event.get('object_type') == 'activity':
+                activity_id = event.get('object_id')
+                athlete_id = event.get('owner_id')
+                aspect_type = event.get('aspect_type')
 
-            access_token = get_user_access_token(athlete_id)
-            if not access_token:
-                return 'User not authorized', 403
+                print(f"Processing activity - ID: {activity_id}, Athlete: {athlete_id}, Aspect: {aspect_type}")
 
-            activity = get_strava_activity(activity_id, access_token)
-            if 'start_date' not in activity or 'elapsed_time' not in activity:
-                return 'Invalid activity data', 400
+                if is_activity_processed(activity_id):
+                    print(f"Activity {activity_id} already processed")
+                    return 'Already processed', 200
 
-            start_time = activity['start_date']
-            elapsed = activity['elapsed_time']
-            start_dt = datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%SZ')
-            end_dt = start_dt + timedelta(seconds=elapsed)
+                access_token = get_user_access_token(athlete_id)
+                if not access_token:
+                    print(f"No access token for athlete {athlete_id}")
+                    return 'User not authorized', 403
 
-            songs = get_songs_in_range(start_time, end_dt.strftime('%Y-%m-%dT%H:%M:%SZ'))
-            description = format_description(songs)
+                activity = get_strava_activity(activity_id, access_token)
+                if 'start_date' not in activity or 'elapsed_time' not in activity:
+                    print(f"Invalid activity data: {activity}")
+                    return 'Invalid activity data', 400
 
-            if update_strava_description(activity_id, access_token, description):
-                mark_activity_processed(activity_id)
-                return 'Updated', 200
+                start_time = activity['start_date']
+                elapsed = activity['elapsed_time']
+                start_dt = datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%SZ')
+                end_dt = start_dt + timedelta(seconds=elapsed)
+
+                songs = get_songs_in_range(start_time, end_dt.strftime('%Y-%m-%dT%H:%M:%SZ'))
+                description = format_description(songs)
+
+                print(f"Found {len(songs)} songs for activity {activity_id}")
+                print(f"Generated description: {description}")
+
+                if update_strava_description(activity_id, access_token, description):
+                    mark_activity_processed(activity_id)
+                    print(f"Successfully updated activity {activity_id}")
+                    return 'Updated', 200
+                else:
+                    print(f"Failed to update activity {activity_id}")
+                    return 'Failed to update Strava', 500
             else:
-                return 'Failed to update Strava', 500
+                print(f"Ignoring event type: {event.get('object_type')}")
+                return 'Ignored event', 200
 
-        return 'Ignored event', 200
+        except Exception as e:
+            print(f"Error processing webhook: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return 'Internal server error', 500
+
+    return 'Method not allowed', 405
+
+
+# Add a simple test endpoint to verify your webhook URL is accessible
+@app.route('/webhook/test')
+def webhook_test():
+    return jsonify({
+        'status': 'ok', 
+        'message': 'Webhook endpoint is accessible',
+        'timestamp': datetime.utcnow().isoformat() + 'Z'
+    })
     
 # Mock user session example (implement your own login/session)
 @app.route('/api/user')
