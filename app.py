@@ -4,6 +4,9 @@ import sqlite3
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, abort, redirect, session, url_for
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Needed for session management

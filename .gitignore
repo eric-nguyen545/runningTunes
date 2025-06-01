@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pkl
+
+# Environment variables
+.env
+
+# SQLite database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
+# Pipenv/Poetry
+Pipfile.lock
+poetry.lock
+
+# Bytecode cache
+*.egg-info/
+.eggs/
+
+# Render build files
+build/
+dist/
+*.egg
+
+# Virtual environments
+venv/
+.env/
+ENV/
+env.bak/
+env/
