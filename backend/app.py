@@ -285,5 +285,9 @@ def api_runs():
     ]
     return jsonify({'runs': example_runs})
 
+@app.route('/spotify/callback')
+def spotify_callback():
+    return "✅ Spotify OAuth successful!"
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
