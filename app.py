@@ -2,16 +2,18 @@ import os
 import json
 import sqlite3
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify, abort, redirect, session, url_for
 import requests
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)  # Needed for session management
 
 # ============ CONFIGURATION ============
 CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
 CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
-STRAVA_VERIFY_TOKEN = os.getenv('STRAVA_VERIFY_TOKEN')  # any random string you choose
+STRAVA_VERIFY_TOKEN = os.getenv('STRAVA_VERIFY_TOKEN')
 STRAVA_REFRESH_TOKEN = os.getenv('STRAVA_REFRESH_TOKEN')
+REDIRECT_URI = os.getenv('STRAVA_REDIRECT_URI') or 'https://runningtunes.onrender.com/strava_callback'
 
 DB_PATH = 'spotify_strava.db'
 
@@ -48,7 +50,6 @@ def save_song(name, artist, played_at):
                   (name, artist, played_at))
         conn.commit()
     except sqlite3.IntegrityError:
-        # Song with this played_at timestamp already exists; ignore duplicate
         pass
     finally:
         conn.close()
@@ -75,7 +76,7 @@ def get_strava_access_token():
     })
     data = response.json()
     if 'refresh_token' in data:
-        STRAVA_REFRESH_TOKEN = data['refresh_token']  # update global refresh token if changed
+        STRAVA_REFRESH_TOKEN = data['refresh_token']
     return data.get('access_token')
 
 def get_strava_activity(activity_id, access_token):
@@ -113,7 +114,55 @@ def format_description(songs):
         desc += f"- {s['name']} – {s['artist']}\n"
     return desc.strip()
 
-# ============ Routes ============
+# ============ OAuth Routes ============
+
+@app.route('/strava_login')
+def strava_login():
+    scope = 'activity:read_all,activity:write'
+    auth_url = (
+        f'https://www.strava.com/oauth/authorize?client_id={CLIENT_ID}'
+        f'&response_type=code&redirect_uri={REDIRECT_URI}'
+        f'&approval_prompt=auto&scope={scope}'
+    )
+    return redirect(auth_url)
+
+@app.route('/strava_callback')
+def strava_callback():
+    code = request.args.get('code')
+    if not code:
+        return 'Missing code', 400
+
+    token_response = requests.post(
+        'https://www.strava.com/oauth/token',
+        data={
+            'client_id': CLIENT_ID,
+            'client_secret': CLIENT_SECRET,
+            'code': code,
+            'grant_type': 'authorization_code'
+        }
+    )
+    token_data = token_response.json()
+    if 'access_token' not in token_data:
+        return jsonify(token_data), 400
+
+    session['strava_access_token'] = token_data['access_token']
+    session['strava_refresh_token'] = token_data['refresh_token']
+    session['strava_token_expires_at'] = token_data['expires_at']
+
+    return 'Strava authentication successful! You can now use the API.'
+
+@app.route('/strava_activities')
+def strava_activities():
+    access_token = session.get('strava_access_token')
+    if not access_token:
+        return redirect(url_for('strava_login'))
+
+    headers = {'Authorization': f'Bearer {access_token}'}
+    response = requests.get('https://www.strava.com/api/v3/athlete/activities', headers=headers)
+    activities = response.json()
+    return jsonify(activities)
+
+# ============ Main Routes ============
 
 @app.route('/log-spotify', methods=['POST'])
 def log_spotify():
@@ -127,7 +176,6 @@ def log_spotify():
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
     if request.method == 'GET':
-        # Strava webhook verification challenge
         mode = request.args.get('hub.mode')
         challenge = request.args.get('hub.challenge')
         verify_token = request.args.get('hub.verify_token')
@@ -142,7 +190,6 @@ def webhook():
         if not event:
             return 'No data', 400
 
-        # Only handle activity creation/update events
         if event.get('object_type') == 'activity':
             activity_id = event.get('object_id')
             aspect_type = event.get('aspect_type')
@@ -156,8 +203,8 @@ def webhook():
             if 'start_date' not in activity or 'elapsed_time' not in activity:
                 return 'Invalid activity data', 400
 
-            start_time = activity['start_date']  # ISO 8601 string
-            elapsed = activity['elapsed_time']  # seconds
+            start_time = activity['start_date']
+            elapsed = activity['elapsed_time']
             start_dt = datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%SZ')
             end_dt = start_dt + timedelta(seconds=elapsed)
 
@@ -171,6 +218,10 @@ def webhook():
                 return 'Failed to update Strava', 500
 
         return 'Ignored event', 200
+
+@app.route('/')
+def home():
+    return 'Welcome to the Spotify-Strava Logger App!'
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
