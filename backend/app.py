@@ -205,13 +205,11 @@ def strava_callback():
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
     if request.method == 'GET':
+        print('Query parameters:', request.args)
         mode = request.args.get('hub.mode')
-        challenge = request.args.get('hub.challenge')
         verify_token = request.args.get('hub.verify_token')
-
-        print(f"Incoming webhook verification: mode={mode}, token={verify_token}, challenge={challenge}")
-        print(f"Expected token: {STRAVA_VERIFY_TOKEN}")
-
+        challenge = request.args.get('hub.challenge')
+        print(f"Verification request - mode: {mode}, token: {verify_token}, challenge: {challenge}")
         if mode == 'subscribe' and verify_token == STRAVA_VERIFY_TOKEN:
             return jsonify({'hub.challenge': challenge})
         return 'Verification failed', 403
