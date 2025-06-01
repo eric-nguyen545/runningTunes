@@ -54,7 +54,7 @@ try:
     print("🎧 Starting Spotify track logger...")
     while True:
         log_current_track()
-        time.sleep(120)  # every 2 minutes
+        time.sleep(45)  # every 2 minutes
 except KeyboardInterrupt:
     print("\n🛑 Logging stopped.")
     with open("spotify_log.json", "w") as f:

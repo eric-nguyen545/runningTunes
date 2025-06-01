@@ -289,5 +289,14 @@ def api_runs():
 def spotify_callback():
     return "✅ Spotify OAuth successful!"
 
+@app.route('/debug/songs')
+def debug_songs():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT * FROM spotify_songs ORDER BY played_at DESC')
+    rows = c.fetchall()
+    conn.close()
+    return jsonify(rows)
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
