@@ -2,28 +2,32 @@ import os
 import json
 import sqlite3
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, abort, redirect, session, url_for
+from flask import Flask, request, jsonify, redirect
 import requests
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)  # Needed for session management
 
 # ============ CONFIGURATION ============
 CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
 CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
 STRAVA_VERIFY_TOKEN = os.getenv('STRAVA_VERIFY_TOKEN')
-STRAVA_REFRESH_TOKEN = os.getenv('STRAVA_REFRESH_TOKEN')
-REDIRECT_URI = os.getenv('STRAVA_REDIRECT_URI') or 'https://runningtunes.onrender.com/strava_callback'
 
 DB_PATH = 'spotify_strava.db'
+YOUR_DOMAIN = os.getenv('YOUR_DOMAIN', 'https://yourdomain.com')  # Replace with your Render domain or use env
 
 # ============ DB SETUP ============
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY,
+            athlete_id INTEGER UNIQUE,
+            access_token TEXT,
+            refresh_token TEXT,
+            expires_at INTEGER
+        )
+    ''')
     c.execute('''
         CREATE TABLE IF NOT EXISTS spotify_songs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,18 +73,41 @@ def get_songs_in_range(start_time, end_time):
     conn.close()
     return [{'name': r[0], 'artist': r[1], 'played_at': r[2]} for r in rows]
 
-def get_strava_access_token():
-    global STRAVA_REFRESH_TOKEN
-    response = requests.post('https://www.strava.com/oauth/token', data={
-        'client_id': CLIENT_ID,
-        'client_secret': CLIENT_SECRET,
-        'grant_type': 'refresh_token',
-        'refresh_token': STRAVA_REFRESH_TOKEN
-    })
-    data = response.json()
-    if 'refresh_token' in data:
-        STRAVA_REFRESH_TOKEN = data['refresh_token']
-    return data.get('access_token')
+def get_user_access_token(athlete_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT access_token, refresh_token, expires_at FROM users WHERE athlete_id=?', (athlete_id,))
+    row = c.fetchone()
+    conn.close()
+
+    if not row:
+        return None
+
+    access_token, refresh_token, expires_at = row
+
+    if datetime.utcnow().timestamp() > expires_at:
+        resp = requests.post('https://www.strava.com/oauth/token', data={
+            'client_id': CLIENT_ID,
+            'client_secret': CLIENT_SECRET,
+            'grant_type': 'refresh_token',
+            'refresh_token': refresh_token
+        })
+        new_data = resp.json()
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute('''
+            UPDATE users SET access_token=?, refresh_token=?, expires_at=? WHERE athlete_id=?
+        ''', (
+            new_data['access_token'],
+            new_data['refresh_token'],
+            new_data['expires_at'],
+            athlete_id
+        ))
+        conn.commit()
+        conn.close()
+        return new_data['access_token']
+
+    return access_token
 
 def get_strava_activity(activity_id, access_token):
     headers = {'Authorization': f'Bearer {access_token}'}
@@ -117,64 +144,54 @@ def format_description(songs):
         desc += f"- {s['name']} – {s['artist']}\n"
     return desc.strip()
 
-# ============ OAuth Routes ============
-
-@app.route('/strava_login')
-def strava_login():
-    scope = 'activity:read_all,activity:write'
-    auth_url = (
-        f'https://www.strava.com/oauth/authorize?client_id={CLIENT_ID}'
-        f'&response_type=code&redirect_uri={REDIRECT_URI}'
-        f'&approval_prompt=auto&scope={scope}'
-    )
-    return redirect(auth_url)
-
-@app.route('/strava_callback')
-def strava_callback():
-    code = request.args.get('code')
-    if not code:
-        return 'Missing code', 400
-
-    token_response = requests.post(
-        'https://www.strava.com/oauth/token',
-        data={
-            'client_id': CLIENT_ID,
-            'client_secret': CLIENT_SECRET,
-            'code': code,
-            'grant_type': 'authorization_code'
-        }
-    )
-    token_data = token_response.json()
-    if 'access_token' not in token_data:
-        return jsonify(token_data), 400
-
-    session['strava_access_token'] = token_data['access_token']
-    session['strava_refresh_token'] = token_data['refresh_token']
-    session['strava_token_expires_at'] = token_data['expires_at']
-
-    return 'Strava authentication successful! You can now use the API.'
-
-@app.route('/strava_activities')
-def strava_activities():
-    access_token = session.get('strava_access_token')
-    if not access_token:
-        return redirect(url_for('strava_login'))
-
-    headers = {'Authorization': f'Bearer {access_token}'}
-    response = requests.get('https://www.strava.com/api/v3/athlete/activities', headers=headers)
-    activities = response.json()
-    return jsonify(activities)
-
-# ============ Main Routes ============
+# ============ Routes ============
 
 @app.route('/log-spotify', methods=['POST'])
 def log_spotify():
     data = request.json
     if not data or 'name' not in data or 'artist' not in data or 'played_at' not in data:
         return jsonify({'error': 'Invalid data'}), 400
-
     save_song(data['name'], data['artist'], data['played_at'])
     return jsonify({'status': 'logged'})
+
+@app.route('/strava/auth')
+def strava_auth():
+    redirect_uri = f'{YOUR_DOMAIN}/strava/callback'
+    return redirect(f'https://www.strava.com/oauth/authorize?client_id={CLIENT_ID}'
+                    f'&redirect_uri={redirect_uri}&response_type=code'
+                    f'&scope=activity:read_all,activity:write')
+
+@app.route('/strava/callback')
+def strava_callback():
+    code = request.args.get('code')
+    if not code:
+        return 'Missing code', 400
+
+    response = requests.post('https://www.strava.com/oauth/token', data={
+        'client_id': CLIENT_ID,
+        'client_secret': CLIENT_SECRET,
+        'code': code,
+        'grant_type': 'authorization_code'
+    })
+    data = response.json()
+    if 'access_token' not in data:
+        return 'Failed to authenticate', 400
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        INSERT OR REPLACE INTO users (athlete_id, access_token, refresh_token, expires_at)
+        VALUES (?, ?, ?, ?)
+    ''', (
+        data['athlete']['id'],
+        data['access_token'],
+        data['refresh_token'],
+        data['expires_at']
+    ))
+    conn.commit()
+    conn.close()
+
+    return f"✅ Successfully connected Strava for athlete ID {data['athlete']['id']}."
 
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
@@ -184,9 +201,8 @@ def webhook():
         verify_token = request.args.get('hub.verify_token')
 
         if mode == 'subscribe' and verify_token == STRAVA_VERIFY_TOKEN:
-            return challenge, 200
-        else:
-            return 'Verification failed', 403
+            return jsonify({'hub.challenge': challenge})
+        return 'Verification failed', 403
 
     if request.method == 'POST':
         event = request.json
@@ -195,14 +211,17 @@ def webhook():
 
         if event.get('object_type') == 'activity':
             activity_id = event.get('object_id')
+            athlete_id = event.get('owner_id')
             aspect_type = event.get('aspect_type')
 
             if is_activity_processed(activity_id):
                 return 'Already processed', 200
 
-            access_token = get_strava_access_token()
-            activity = get_strava_activity(activity_id, access_token)
+            access_token = get_user_access_token(athlete_id)
+            if not access_token:
+                return 'User not authorized', 403
 
+            activity = get_strava_activity(activity_id, access_token)
             if 'start_date' not in activity or 'elapsed_time' not in activity:
                 return 'Invalid activity data', 400
 
@@ -221,10 +240,6 @@ def webhook():
                 return 'Failed to update Strava', 500
 
         return 'Ignored event', 200
-
-@app.route('/')
-def home():
-    return 'Welcome to the Spotify-Strava Logger App!'
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
