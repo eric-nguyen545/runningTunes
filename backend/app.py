@@ -146,11 +146,23 @@ def is_activity_processed(activity_id):
     return result is not None
 
 def format_description(songs):
+    """Format description with unique songs only"""
     if not songs:
         return "🏃 Great run! No Spotify songs logged."
+    
+    # Additional deduplication in case database query didn't catch everything
+    unique_songs = {}
+    for song in songs:
+        key = f"{song['name']}|{song['artist']}"  # Use name+artist as unique key
+        if key not in unique_songs:
+            unique_songs[key] = song
+    
+    unique_song_list = list(unique_songs.values())
+    
     desc = "🏃 Great run!\n🎶 Songs listened to:\n"
-    for s in songs:
+    for s in unique_song_list:
         desc += f"- {s['name']} – {s['artist']}\n"
+    
     return desc.strip()
 
 # ============ Routes ============

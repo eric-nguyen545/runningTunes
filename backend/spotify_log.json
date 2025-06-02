@@ -1,202 +1,87 @@
 [
   {
-    "name": "Mamacita (feat. Rich Homie Quan & Young Thug)",
-    "artist": "Travis Scott",
-    "played_at": "2025-06-01T21:19:59.175752Z"
-  },
-  {
-    "name": "Mamacita (feat. Rich Homie Quan & Young Thug)",
-    "artist": "Travis Scott",
-    "played_at": "2025-06-01T21:21:17.828528Z"
-  },
-  {
-    "name": "Mamacita (feat. Rich Homie Quan & Young Thug)",
-    "artist": "Travis Scott",
-    "played_at": "2025-06-01T21:22:03.335261Z"
-  },
-  {
-    "name": "Mamacita (feat. Rich Homie Quan & Young Thug)",
-    "artist": "Travis Scott",
-    "played_at": "2025-06-01T21:22:49.037729Z"
-  },
-  {
-    "name": "Mamacita (feat. Rich Homie Quan & Young Thug)",
-    "artist": "Travis Scott",
-    "played_at": "2025-06-01T21:23:34.375957Z"
-  },
-  {
-    "name": "Future Swag",
-    "artist": "Young Thug",
-    "played_at": "2025-06-01T21:24:19.790218Z"
-  },
-  {
-    "name": "Future Swag",
-    "artist": "Young Thug",
-    "played_at": "2025-06-01T21:25:05.239018Z"
-  },
-  {
-    "name": "Future Swag",
-    "artist": "Young Thug",
-    "played_at": "2025-06-01T21:25:50.598031Z"
-  },
-  {
-    "name": "Future Swag",
-    "artist": "Young Thug",
-    "played_at": "2025-06-01T21:26:35.999385Z"
-  },
-  {
-    "name": "At the Hotel (feat. Lil Uzi Vert & Young Jordan)",
-    "artist": "Gunna",
-    "played_at": "2025-06-01T21:27:21.342872Z"
-  },
-  {
-    "name": "At the Hotel (feat. Lil Uzi Vert & Young Jordan)",
-    "artist": "Gunna",
-    "played_at": "2025-06-01T21:28:06.866405Z"
-  },
-  {
-    "name": "At the Hotel (feat. Lil Uzi Vert & Young Jordan)",
-    "artist": "Gunna",
-    "played_at": "2025-06-01T21:28:52.313096Z"
-  },
-  {
-    "name": "At the Hotel (feat. Lil Uzi Vert & Young Jordan)",
-    "artist": "Gunna",
-    "played_at": "2025-06-01T21:29:37.933430Z"
-  },
-  {
-    "name": "At the Hotel (feat. Lil Uzi Vert & Young Jordan)",
-    "artist": "Gunna",
-    "played_at": "2025-06-01T21:30:23.402044Z"
-  },
-  {
-    "name": "Drip Day N Night (feat. Gunna & Lil Keed)",
-    "artist": "Lil Gotit",
-    "played_at": "2025-06-01T21:31:08.724230Z"
-  },
-  {
-    "name": "Drip Day N Night (feat. Gunna & Lil Keed)",
-    "artist": "Lil Gotit",
-    "played_at": "2025-06-01T21:31:54.097751Z"
-  },
-  {
-    "name": "Drip Day N Night (feat. Gunna & Lil Keed)",
-    "artist": "Lil Gotit",
-    "played_at": "2025-06-01T21:32:39.499224Z"
-  },
-  {
-    "name": "Drip Day N Night (feat. Gunna & Lil Keed)",
-    "artist": "Lil Gotit",
-    "played_at": "2025-06-01T21:33:24.952209Z"
-  },
-  {
-    "name": "Uh Uh (feat. Playboi Carti)",
-    "artist": "Chief Keef",
-    "played_at": "2025-06-01T21:36:25.739202Z"
-  },
-  {
-    "name": "Uh Uh (feat. Playboi Carti)",
-    "artist": "Chief Keef",
-    "played_at": "2025-06-01T21:37:11.072442Z"
-  },
-  {
-    "name": "Uh Uh (feat. Playboi Carti)",
-    "artist": "Chief Keef",
-    "played_at": "2025-06-01T21:37:56.437104Z"
-  },
-  {
-    "name": "Million Dollar Mansion (feat. Young Thug)",
-    "artist": "Lil Keed",
-    "played_at": "2025-06-01T21:38:41.792438Z"
-  },
-  {
-    "name": "Flex Up (feat. Future & Playboi Carti)",
-    "artist": "Lil Yachty",
-    "played_at": "2025-06-01T21:39:27.207097Z"
-  },
-  {
-    "name": "Flex Up (feat. Future & Playboi Carti)",
-    "artist": "Lil Yachty",
-    "played_at": "2025-06-01T21:40:12.600483Z"
-  },
-  {
-    "name": "Flex Up (feat. Future & Playboi Carti)",
-    "artist": "Lil Yachty",
-    "played_at": "2025-06-01T21:40:57.928092Z"
-  },
-  {
-    "name": "Flex Up (feat. Future & Playboi Carti)",
-    "artist": "Lil Yachty",
-    "played_at": "2025-06-01T21:41:43.276076Z"
-  },
-  {
-    "name": "dothatshit!",
-    "artist": "Playboi Carti",
-    "played_at": "2025-06-01T21:42:28.677405Z"
-  },
-  {
-    "name": "dothatshit!",
-    "artist": "Playboi Carti",
-    "played_at": "2025-06-01T21:43:14.051414Z"
-  },
-  {
-    "name": "dothatshit!",
-    "artist": "Playboi Carti",
-    "played_at": "2025-06-01T21:43:59.431825Z"
-  },
-  {
-    "name": "dothatshit!",
-    "artist": "Playboi Carti",
-    "played_at": "2025-06-01T21:44:45.075846Z"
-  },
-  {
-    "name": "Go",
-    "artist": "Huncho Jack",
-    "played_at": "2025-06-01T21:45:30.564130Z"
-  },
-  {
-    "name": "Go",
-    "artist": "Huncho Jack",
-    "played_at": "2025-06-01T21:46:15.966614Z"
-  },
-  {
-    "name": "Go",
-    "artist": "Huncho Jack",
-    "played_at": "2025-06-01T21:47:01.344476Z"
-  },
-  {
-    "name": "Go",
-    "artist": "Huncho Jack",
-    "played_at": "2025-06-01T21:47:46.712903Z"
-  },
-  {
-    "name": "Colossal",
-    "artist": "Future",
-    "played_at": "2025-06-01T21:48:32.108713Z"
-  },
-  {
-    "name": "Colossal",
-    "artist": "Future",
-    "played_at": "2025-06-01T21:49:17.496626Z"
-  },
-  {
-    "name": "Colossal",
-    "artist": "Future",
-    "played_at": "2025-06-01T21:50:02.825813Z"
-  },
-  {
-    "name": "Colossal",
-    "artist": "Future",
-    "played_at": "2025-06-01T21:50:48.233157Z"
-  },
-  {
     "name": "Back in Blood (feat. Lil Durk)",
     "artist": "Pooh Shiesty",
-    "played_at": "2025-06-01T21:53:04.171749Z"
+    "played_at": "2025-06-02T00:23:12.476698Z"
   },
   {
-    "name": "Back in Blood (feat. Lil Durk)",
-    "artist": "Pooh Shiesty",
-    "played_at": "2025-06-01T21:53:49.869500Z"
+    "name": "Don't Come Out The House (with 21 Savage)",
+    "artist": "Metro Boomin",
+    "played_at": "2025-06-02T00:24:19.035791Z"
+  },
+  {
+    "name": "Don't Come Out The House (with 21 Savage)",
+    "artist": "Metro Boomin",
+    "played_at": "2025-06-02T00:25:04.497809Z"
+  },
+  {
+    "name": "Don't Come Out The House (with 21 Savage)",
+    "artist": "Metro Boomin",
+    "played_at": "2025-06-02T00:25:49.966171Z"
+  },
+  {
+    "name": "Don't Come Out The House (with 21 Savage)",
+    "artist": "Metro Boomin",
+    "played_at": "2025-06-02T00:26:35.430334Z"
+  },
+  {
+    "name": "Over",
+    "artist": "Playboi Carti",
+    "played_at": "2025-06-02T00:27:20.753026Z"
+  },
+  {
+    "name": "Over",
+    "artist": "Playboi Carti",
+    "played_at": "2025-06-02T00:28:06.155973Z"
+  },
+  {
+    "name": "Over",
+    "artist": "Playboi Carti",
+    "played_at": "2025-06-02T00:28:51.621104Z"
+  },
+  {
+    "name": "Over",
+    "artist": "Playboi Carti",
+    "played_at": "2025-06-02T00:29:37.086219Z"
+  },
+  {
+    "name": "Came and Saw (feat. Rowdy Rebel)",
+    "artist": "Young Stoner Life",
+    "played_at": "2025-06-02T00:30:22.450601Z"
+  },
+  {
+    "name": "Came and Saw (feat. Rowdy Rebel)",
+    "artist": "Young Stoner Life",
+    "played_at": "2025-06-02T00:31:08.019875Z"
+  },
+  {
+    "name": "Came and Saw (feat. Rowdy Rebel)",
+    "artist": "Young Stoner Life",
+    "played_at": "2025-06-02T00:31:53.689850Z"
+  },
+  {
+    "name": "Came and Saw (feat. Rowdy Rebel)",
+    "artist": "Young Stoner Life",
+    "played_at": "2025-06-02T00:32:39.051076Z"
+  },
+  {
+    "name": "Futsal Shuffle 2020",
+    "artist": "Lil Uzi Vert",
+    "played_at": "2025-06-02T00:33:24.517264Z"
+  },
+  {
+    "name": "Futsal Shuffle 2020",
+    "artist": "Lil Uzi Vert",
+    "played_at": "2025-06-02T00:34:10.391318Z"
+  },
+  {
+    "name": "Futsal Shuffle 2020",
+    "artist": "Lil Uzi Vert",
+    "played_at": "2025-06-02T00:34:55.754695Z"
+  },
+  {
+    "name": "Futsal Shuffle 2020",
+    "artist": "Lil Uzi Vert",
+    "played_at": "2025-06-02T00:35:41.117020Z"
   }
 ]
