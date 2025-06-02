@@ -218,7 +218,7 @@ def strava_callback():
     conn.commit()
     conn.close()
 
-    return f"✅ Successfully connected Strava for athlete ID {data['athlete']['id']}."
+    return redirect("https://runningtunes-frontend.onrender.com/api/runs")
 
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
