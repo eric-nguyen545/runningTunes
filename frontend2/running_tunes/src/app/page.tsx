@@ -103,7 +103,7 @@ export default function Home() {
   }, [currentPage, user]);
 
   const handleStravaConnect = () => {
-    window.location.href = '/strava/auth';
+    window.location.href = 'https://runningtunes-backend.onrender.com/strava/auth';
   };
 
   const formatTime = (seconds: number): string => {
@@ -569,7 +569,7 @@ export default function Home() {
                       Refresh Data
                     </button>
                     <button
-                      onClick={() => window.location.href = '/strava/auth'}
+                      onClick={() => window.location.href = 'https://runningtunes-backend.onrender.com/strava/auth'}
                       className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors duration-200"
                     >
                       Reconnect Strava
