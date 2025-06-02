@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { Clock, MapPin, Zap, Music, Play, User, Home as HomeIcon, Activity, Settings, List } from 'lucide-react';
 import Image from 'next/image';
 
+// API Configuration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://runningtunes-backend.onrender.com';
+
 // Define proper interfaces
 interface Song {
   name: string;
@@ -41,6 +44,31 @@ interface UserData {
 
 type PageType = 'home' | 'last-run' | 'all-runs' | 'settings';
 
+// API Helper Functions
+const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  
+  const defaultOptions: RequestInit = {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    ...options,
+  };
+
+  try {
+    const response = await fetch(url, defaultOptions);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`API call failed for ${endpoint}:`, error);
+    throw error;
+  }
+};
+
 export default function Home() {
   const [user, setUser] = useState<UserData | null>(null);
   const [status, setStatus] = useState('Loading...');
@@ -60,24 +88,31 @@ export default function Home() {
       setLoading(true);
       setError(null);
 
-      const [userResponse, runResponse] = await Promise.all([
-        fetch('/api/user'),
-        fetch('/api/last-run')
+      // Make parallel API calls to your backend
+      const [userResponse, runResponse] = await Promise.allSettled([
+        apiCall('/api/user'),
+        apiCall('/api/last-run')
       ]);
 
-      const userData = userResponse.ok ? await userResponse.json() : null;
-      const runData = runResponse.ok ? await runResponse.json() : null;
-
-      if (userData && userData.athlete_id) {
-        setUser(userData);
+      // Handle user data
+      if (userResponse.status === 'fulfilled' && userResponse.value.athlete_id) {
+        setUser(userResponse.value);
         setStatus('Connected');
-        setLastRun(runData);
       } else {
+        setUser(null);
         setStatus('Not connected');
       }
+
+      // Handle run data
+      if (runResponse.status === 'fulfilled') {
+        setLastRun(runResponse.value);
+      } else {
+        setLastRun(null);
+      }
+
     } catch (err) {
       console.error('Error loading data:', err);
-      setError('Failed to load data');
+      setError('Failed to load data. Please check your connection.');
       setStatus('Error');
     } finally {
       setLoading(false);
@@ -86,13 +121,11 @@ export default function Home() {
 
   const loadAllRuns = async () => {
     try {
-      const response = await fetch('/api/runs');
-      if (response.ok) {
-        const data = await response.json();
-        setAllRuns(data.runs || []);
-      }
+      const data = await apiCall('/api/runs');
+      setAllRuns(data.runs || []);
     } catch (err) {
       console.error('Error loading all runs:', err);
+      setError('Failed to load runs data');
     }
   };
 
@@ -103,7 +136,7 @@ export default function Home() {
   }, [currentPage, user]);
 
   const handleStravaConnect = () => {
-    window.location.href = 'https://runningtunes-backend.onrender.com/strava/auth';
+    window.location.href = `${API_BASE_URL}/strava/auth`;
   };
 
   const formatTime = (seconds: number): string => {
@@ -393,6 +426,9 @@ export default function Home() {
         {error && (
           <div className="bg-red-500/20 backdrop-blur-md rounded-2xl p-6 mb-8 border border-red-400/30">
             <p className="text-white">{error}</p>
+            <p className="text-white/70 text-sm mt-2">
+              Backend URL: {API_BASE_URL}
+            </p>
           </div>
         )}
 
@@ -560,6 +596,14 @@ export default function Home() {
                 </div>
 
                 <div className="bg-white/10 rounded-xl p-4">
+                  <h3 className="text-white font-semibold mb-2">Backend Connection</h3>
+                  <div className="text-white/70 text-sm space-y-1">
+                    <p>API URL: {API_BASE_URL}</p>
+                    <p>Status: {status}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white/10 rounded-xl p-4">
                   <h3 className="text-white font-semibold mb-2">Actions</h3>
                   <div className="space-y-2">
                     <button
@@ -569,7 +613,7 @@ export default function Home() {
                       Refresh Data
                     </button>
                     <button
-                      onClick={() => window.location.href = 'https://runningtunes-backend.onrender.com/strava/auth'}
+                      onClick={() => window.location.href = `${API_BASE_URL}/strava/auth`}
                       className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors duration-200"
                     >
                       Reconnect Strava

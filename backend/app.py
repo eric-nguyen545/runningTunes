@@ -28,7 +28,7 @@ SPOTIFY_CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
 SPOTIFY_CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
 
 DB_PATH = 'spotify_strava.db'
-YOUR_DOMAIN = os.getenv('YOUR_DOMAIN', 'https://runningtunes.onrender.com')
+YOUR_DOMAIN = os.getenv('YOUR_DOMAIN', 'https://runningtunes-frontend.onrender.com')
 
 # ============ DB SETUP ============
 def init_db():
