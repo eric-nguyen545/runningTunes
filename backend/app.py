@@ -1,7 +1,7 @@
 import os
 import json
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Flask, request, jsonify, redirect, session, send_from_directory
 from flask_cors import CORS
 import requests
@@ -28,7 +28,10 @@ SPOTIFY_CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
 SPOTIFY_CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
 
 DB_PATH = 'spotify_strava.db'
-YOUR_DOMAIN = os.getenv('YOUR_DOMAIN', 'https://runningtunes-frontend.onrender.com')
+# Frontend URL for redirecting users after auth
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://runningtunes-frontend.onrender.com')
+# Backend URL for Strava callback
+BACKEND_URL = os.getenv('BACKEND_URL', 'https://runningtunes-backend.onrender.com')
 
 # ============ DB SETUP ============
 def init_db():
@@ -100,7 +103,7 @@ def get_user_access_token(athlete_id):
 
     access_token, refresh_token, expires_at = row
 
-    if datetime.utcnow().timestamp() > expires_at:
+    if datetime.now(timezone.utc).timestamp() > expires_at:
         resp = requests.post('https://www.strava.com/oauth/token', data={
             'client_id': CLIENT_ID,
             'client_secret': CLIENT_SECRET,
@@ -139,7 +142,7 @@ def mark_activity_processed(activity_id):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('INSERT OR REPLACE INTO processed_activities (id, updated_at) VALUES (?, ?)',
-              (activity_id, datetime.utcnow().isoformat() + 'Z'))
+              (activity_id, datetime.now(timezone.utc).isoformat() + 'Z'))
     conn.commit()
     conn.close()
 
@@ -183,7 +186,8 @@ def log_spotify():
 
 @app.route('/strava/auth')
 def strava_auth():
-    redirect_uri = f'{YOUR_DOMAIN}/strava/callback'
+    # The callback must point to your BACKEND, not frontend
+    redirect_uri = f'{BACKEND_URL}/strava/callback'
     return redirect(f'https://www.strava.com/oauth/authorize?client_id={CLIENT_ID}'
                     f'&redirect_uri={redirect_uri}&response_type=code'
                     f'&scope=activity:read_all,activity:write')
@@ -194,15 +198,21 @@ def strava_callback():
     if not code:
         return 'Missing code', 400
 
+    # Use the same redirect_uri that was used in the auth request
+    redirect_uri = f'{BACKEND_URL}/strava/callback'
+    
     response = requests.post('https://www.strava.com/oauth/token', data={
         'client_id': CLIENT_ID,
         'client_secret': CLIENT_SECRET,
         'code': code,
-        'grant_type': 'authorization_code'
+        'grant_type': 'authorization_code',
+        'redirect_uri': redirect_uri  # Add this line - it's required!
     })
+    
     data = response.json()
     if 'access_token' not in data:
-        return 'Failed to authenticate', 400
+        print(f"Strava auth error: {data}")  # Debug logging
+        return f'Failed to authenticate: {data}', 400
 
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -218,7 +228,8 @@ def strava_callback():
     conn.commit()
     conn.close()
 
-    return redirect("https://runningtunes-frontend.onrender.com/api/runs")
+    # Redirect to frontend after successful auth
+    return redirect(f"{FRONTEND_URL}?auth=success")
 
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
