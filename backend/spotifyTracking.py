@@ -2,7 +2,7 @@ import time
 import json
 import requests
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -31,7 +31,7 @@ def log_current_track():
         song = {
             'name': current['item']['name'],
             'artist': current['item']['artists'][0]['name'],
-            'played_at': datetime.utcnow().isoformat() + 'Z'
+            'played_at': datetime.now(timezone.utc).isoformat() + 'Z'
         }
 
         if not logged_songs or song != logged_songs[-1]:
@@ -54,7 +54,7 @@ try:
     print("🎧 Starting Spotify track logger...")
     while True:
         log_current_track()
-        time.sleep(45)  # every 2 minutes
+        time.sleep(45)  # every 45 secs
 except KeyboardInterrupt:
     print("\n🛑 Logging stopped.")
     with open("spotify_log.json", "w") as f:
