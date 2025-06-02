@@ -4,10 +4,30 @@ import { useEffect, useState } from 'react';
 import { Clock, MapPin, Zap, Music, Play, User } from 'lucide-react';
 import Image from 'next/image';
 
+// Define proper interfaces
+interface Song {
+  name: string;
+  artist: string;
+  played_at: string;
+  cover_art?: string;
+}
+
+interface Run {
+  distance: number;
+  elapsed_time: number;
+  start_date: string;
+  songs?: Song[];
+}
+
+interface UserData {
+  athlete_id: number;
+}
+
+
 export default function Home() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserData | null>(null);
   const [status, setStatus] = useState('Loading...');
-  const [lastRun, setLastRun] = useState<any>(null);
+  const [lastRun, setLastRun] = useState<Run | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -198,7 +218,7 @@ export default function Home() {
 
               {lastRun.songs && lastRun.songs.length > 0 ? (
                 <div className="space-y-4">
-                  {lastRun.songs.map((song: any, index: number) => (
+                  {lastRun.songs.map((song: Song, index: number) => (
                     <div key={index} className="bg-white/10 rounded-xl p-4 flex items-center gap-4 hover:bg-white/20 transition-colors duration-200">
                       <div className="flex-shrink-0">
                         {song.cover_art ? (
