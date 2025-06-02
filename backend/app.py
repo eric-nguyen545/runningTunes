@@ -3,11 +3,13 @@ import json
 import sqlite3
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, redirect, session, send_from_directory
+from flask_cors import CORS
 import requests
 import base64
 from urllib.parse import urlencode
 
-app = Flask(__name__, static_folder='build/static', static_url_path='/static')
+app = Flask(__name__)
+CORS(app, origins=["https://runningtunes-frontend.onrender.com"])
 
 # Serve React App
 @app.route('/', defaults={'path': ''})
