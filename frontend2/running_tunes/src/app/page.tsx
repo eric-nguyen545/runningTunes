@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { Clock, MapPin, Zap, Music, Play, User } from 'lucide-react';
+import Image from 'next/image';
 
 export default function Home() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [status, setStatus] = useState('Loading...');
-  const [lastRun, setLastRun] = useState(null);
+  const [lastRun, setLastRun] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +40,7 @@ export default function Home() {
     window.location.href = '/strava/auth';
   };
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -50,20 +51,20 @@ export default function Home() {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const formatDistance = (meters) => {
+  const formatDistance = (meters: number): string => {
     const km = (meters / 1000).toFixed(2);
     const miles = (meters / 1609.34).toFixed(2);
     return `${km} km (${miles} mi)`;
   };
 
-  const formatPace = (timeInSeconds, distanceInMeters) => {
-    const paceSecondsPerKm = (timeInSeconds / (distanceInMeters / 1000));
+  const formatPace = (timeInSeconds: number, distanceInMeters: number): string => {
+    const paceSecondsPerKm = timeInSeconds / (distanceInMeters / 1000);
     const minutes = Math.floor(paceSecondsPerKm / 60);
     const seconds = Math.floor(paceSecondsPerKm % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}/km`;
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -85,6 +86,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 via-red-500 to-pink-500 p-8 font-[family-name:var(--font-geist-sans)]">
       <div className="container mx-auto px-6 py-8">
+
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-white mb-4 flex items-center justify-center gap-3">
@@ -109,7 +111,7 @@ export default function Home() {
                 )}
               </div>
             </div>
-            
+
             {!user && (
               <button
                 onClick={handleStravaConnect}
@@ -129,13 +131,14 @@ export default function Home() {
 
         {user && lastRun && (
           <div className="space-y-8">
+
             {/* Run Details Card */}
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
                 <Zap className="w-7 h-7" />
                 Latest Run
               </h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <div className="bg-white/10 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -146,7 +149,7 @@ export default function Home() {
                     {formatDistance(lastRun.distance)}
                   </p>
                 </div>
-                
+
                 <div className="bg-white/10 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Clock className="w-5 h-5 text-white/70" />
@@ -156,7 +159,7 @@ export default function Home() {
                     {formatTime(lastRun.elapsed_time)}
                   </p>
                 </div>
-                
+
                 <div className="bg-white/10 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className="w-5 h-5 text-white/70" />
@@ -166,7 +169,7 @@ export default function Home() {
                     {formatPace(lastRun.elapsed_time, lastRun.distance)}
                   </p>
                 </div>
-                
+
                 <div className="bg-white/10 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Music className="w-5 h-5 text-white/70" />
@@ -192,17 +195,19 @@ export default function Home() {
                 <Music className="w-7 h-7" />
                 Your Running Playlist
               </h3>
-              
+
               {lastRun.songs && lastRun.songs.length > 0 ? (
                 <div className="space-y-4">
-                  {lastRun.songs.map((song, index) => (
+                  {lastRun.songs.map((song: any, index: number) => (
                     <div key={index} className="bg-white/10 rounded-xl p-4 flex items-center gap-4 hover:bg-white/20 transition-colors duration-200">
                       <div className="flex-shrink-0">
                         {song.cover_art ? (
-                          <img 
-                            src={song.cover_art} 
+                          <Image 
+                            src={song.cover_art}
                             alt={`${song.name} cover`}
-                            className="w-16 h-16 rounded-lg shadow-lg"
+                            width={64}
+                            height={64}
+                            className="rounded-lg shadow-lg object-cover"
                           />
                         ) : (
                           <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
@@ -210,7 +215,7 @@ export default function Home() {
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="flex-grow">
                         <h4 className="text-white font-semibold text-lg mb-1">
                           {song.name}
@@ -222,7 +227,7 @@ export default function Home() {
                           Played at {new Date(song.played_at).toLocaleTimeString()}
                         </p>
                       </div>
-                      
+
                       <div className="flex-shrink-0">
                         <button className="w-12 h-12 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors duration-200 shadow-lg">
                           <Play className="w-6 h-6 text-white ml-1" />
