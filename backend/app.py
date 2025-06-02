@@ -176,6 +176,13 @@ def format_description(songs):
 
 # ============ Routes ============
 
+@app.route('/debug/config')
+def debug_config():
+    return jsonify({
+        'BACKEND_URL': BACKEND_URL,
+        'redirect_uri': f'{BACKEND_URL}/strava/callback'
+    })
+
 @app.route('/log-spotify', methods=['POST'])
 def log_spotify():
     data = request.json
@@ -186,14 +193,16 @@ def log_spotify():
 
 @app.route('/strava/auth')
 def strava_auth():
-    # The callback must point to your BACKEND, not frontend
     redirect_uri = f'{BACKEND_URL}/strava/callback'
+    print(f"Auth redirect_uri: {redirect_uri}")  # Debug log
     return redirect(f'https://www.strava.com/oauth/authorize?client_id={CLIENT_ID}'
                     f'&redirect_uri={redirect_uri}&response_type=code'
                     f'&scope=activity:read_all,activity:write')
 
 @app.route('/strava/callback')
 def strava_callback():
+    redirect_uri = f'{BACKEND_URL}/strava/callback'
+    print(f"Callback redirect_uri: {redirect_uri}")
     code = request.args.get('code')
     if not code:
         return 'Missing code', 400
