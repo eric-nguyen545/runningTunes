@@ -229,7 +229,7 @@ def strava_callback():
     conn.close()
 
     # Redirect to frontend after successful auth
-    return redirect(f"{FRONTEND_URL}?auth=success")
+    return redirect(f"{FRONTEND_URL}")
 
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
