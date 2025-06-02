@@ -405,25 +405,6 @@ def api_runs():
     
     return jsonify({'runs': []})
 
-@app.route('/api/runs')
-def api_runs():
-    # Fetch recent runs for user from your DB or Strava API
-    # This example returns dummy data - replace with your actual logic
-    example_runs = [
-        {
-            'id': 1,
-            'start_date': '2025-06-01T09:00:00Z',
-            'distance': 5000,
-            'elapsed_time': 1500,
-            'songs': [
-                {'name': 'Song A', 'artist': 'Artist A', 'played_at': '2025-06-01T09:05:00Z'},
-                {'name': 'Song B', 'artist': 'Artist B', 'played_at': '2025-06-01T09:10:00Z'},
-            ],
-        },
-        # Add more runs here
-    ]
-    return jsonify({'runs': example_runs})
-
 @app.route('/spotify/callback')
 def spotify_callback():
     return "✅ Spotify OAuth successful!"
