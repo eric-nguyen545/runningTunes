@@ -4,6 +4,8 @@ import sqlite3
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, redirect, session, send_from_directory
 import requests
+import base64
+from urllib.parse import urlencode
 
 app = Flask(__name__, static_folder='build/static', static_url_path='/static')
 
@@ -20,6 +22,8 @@ def serve_react(path):
 CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
 CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
 STRAVA_VERIFY_TOKEN = "gopherrunclub"
+SPOTIFY_CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
+SPOTIFY_CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
 
 DB_PATH = 'spotify_strava.db'
 YOUR_DOMAIN = os.getenv('YOUR_DOMAIN', 'https://runningtunes.onrender.com')  # Replace with your Render domain or use env
@@ -274,18 +278,132 @@ def webhook():
 # Mock user session example (implement your own login/session)
 @app.route('/api/user')
 def api_user():
-    # You should identify user by session/cookies or tokens
-    # For demo, pick first user from DB:
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT athlete_id FROM users LIMIT 1')
     row = c.fetchone()
+    conn.close()
+    
     if not row:
-        return jsonify({'error': 'No user connected'}), 403
+        return jsonify({'error': 'No user connected'}), 404
 
     athlete_id = row[0]
-    # You can add more user info here
-    return jsonify({'athlete_id': athlete_id, 'athlete_name': 'Runner', 'last_sync': '2025-06-01 10:00:00'})
+    
+    # Get additional user info from Strava
+    access_token = get_user_access_token(athlete_id)
+    user_info = {'athlete_id': athlete_id}
+    
+    if access_token:
+        headers = {'Authorization': f'Bearer {access_token}'}
+        try:
+            response = requests.get('https://www.strava.com/api/v3/athlete', headers=headers)
+            if response.status_code == 200:
+                athlete_data = response.json()
+                user_info.update({
+                    'athlete_name': f"{athlete_data.get('firstname', '')} {athlete_data.get('lastname', '')}".strip(),
+                    'profile_pic': athlete_data.get('profile'),
+                    'city': athlete_data.get('city'),
+                    'state': athlete_data.get('state'),
+                    'country': athlete_data.get('country')
+                })
+        except:
+            pass
+    
+    return jsonify(user_info)
+
+# Add this new route for getting the last run with songs
+@app.route('/api/last-run')
+def api_last_run():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT athlete_id FROM users LIMIT 1')
+    row = c.fetchone()
+    conn.close()
+    
+    if not row:
+        return jsonify({'error': 'No user connected'}), 404
+
+    athlete_id = row[0]
+    last_run = get_user_last_run(athlete_id)
+    
+    if not last_run:
+        return jsonify({'error': 'No runs found'}), 404
+    
+    # Get songs for this run
+    start_time = last_run['start_date']
+    elapsed = last_run['elapsed_time']
+    start_dt = datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%SZ')
+    end_dt = start_dt + timedelta(seconds=elapsed)
+    
+    songs = get_songs_in_range(start_time, end_dt.strftime('%Y-%m-%dT%H:%M:%SZ'))
+    
+    # Enrich songs with Spotify metadata
+    enriched_songs = enrich_songs_with_spotify_data(songs)
+    
+    # Add songs to the run data
+    run_data = {
+        'id': last_run['id'],
+        'name': last_run.get('name', 'Morning Run'),
+        'start_date': last_run['start_date'],
+        'distance': last_run['distance'],
+        'elapsed_time': last_run['elapsed_time'],
+        'moving_time': last_run.get('moving_time'),
+        'total_elevation_gain': last_run.get('total_elevation_gain'),
+        'type': last_run.get('type'),
+        'average_speed': last_run.get('average_speed'),
+        'max_speed': last_run.get('max_speed'),
+        'average_heartrate': last_run.get('average_heartrate'),
+        'max_heartrate': last_run.get('max_heartrate'),
+        'songs': enriched_songs
+    }
+    
+    return jsonify(run_data)
+
+# Add this route for getting all runs (optional, for future expansion)
+@app.route('/api/runs')
+def api_runs():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT athlete_id FROM users LIMIT 1')
+    row = c.fetchone()
+    conn.close()
+    
+    if not row:
+        return jsonify({'error': 'No user connected'}), 404
+
+    athlete_id = row[0]
+    access_token = get_user_access_token(athlete_id)
+    
+    if not access_token:
+        return jsonify({'error': 'No access token'}), 401
+    
+    headers = {'Authorization': f'Bearer {access_token}'}
+    params = {'per_page': 10, 'page': 1}
+    
+    try:
+        response = requests.get('https://www.strava.com/api/v3/athlete/activities', 
+                              headers=headers, params=params)
+        if response.status_code == 200:
+            activities = response.json()
+            # Filter for running activities only
+            runs = [activity for activity in activities 
+                   if activity.get('type') in ['Run', 'TrailRun', 'VirtualRun']]
+            
+            # Add songs to each run (this might be expensive for many runs)
+            for run in runs[:3]:  # Limit to first 3 runs to avoid too many API calls
+                start_time = run['start_date']
+                elapsed = run['elapsed_time']
+                start_dt = datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%SZ')
+                end_dt = start_dt + timedelta(seconds=elapsed)
+                
+                songs = get_songs_in_range(start_time, end_dt.strftime('%Y-%m-%dT%H:%M:%SZ'))
+                run['songs'] = enrich_songs_with_spotify_data(songs)
+            
+            return jsonify({'runs': runs})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    return jsonify({'runs': []})
 
 @app.route('/api/runs')
 def api_runs():
@@ -318,6 +436,106 @@ def debug_songs():
     rows = c.fetchall()
     conn.close()
     return jsonify(rows)
+
+def get_spotify_access_token():
+    """Get Spotify app-only access token for track metadata"""
+    if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
+        return None
+    
+    auth_string = f"{SPOTIFY_CLIENT_ID}:{SPOTIFY_CLIENT_SECRET}"
+    auth_base64 = base64.b64encode(auth_string.encode()).decode()
+    
+    headers = {
+        'Authorization': f'Basic {auth_base64}',
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+    
+    data = {'grant_type': 'client_credentials'}
+    
+    try:
+        response = requests.post('https://accounts.spotify.com/api/token', headers=headers, data=data)
+        if response.status_code == 200:
+            return response.json().get('access_token')
+    except:
+        pass
+    return None
+
+def search_spotify_track(track_name, artist_name, spotify_token):
+    """Search for track on Spotify to get metadata"""
+    if not spotify_token:
+        return None
+    
+    query = f"track:{track_name} artist:{artist_name}"
+    params = {
+        'q': query,
+        'type': 'track',
+        'limit': 1
+    }
+    
+    headers = {'Authorization': f'Bearer {spotify_token}'}
+    
+    try:
+        response = requests.get('https://api.spotify.com/v1/search', headers=headers, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            tracks = data.get('tracks', {}).get('items', [])
+            if tracks:
+                track = tracks[0]
+                return {
+                    'name': track['name'],
+                    'artist': ', '.join([artist['name'] for artist in track['artists']]),
+                    'cover_art': track['album']['images'][0]['url'] if track['album']['images'] else None,
+                    'spotify_url': track['external_urls']['spotify'],
+                    'preview_url': track.get('preview_url')
+                }
+    except:
+        pass
+    return None
+
+def get_user_last_run(athlete_id):
+    """Get the user's most recent run from Strava"""
+    access_token = get_user_access_token(athlete_id)
+    if not access_token:
+        return None
+    
+    headers = {'Authorization': f'Bearer {access_token}'}
+    params = {'per_page': 1, 'page': 1}
+    
+    try:
+        response = requests.get('https://www.strava.com/api/v3/athlete/activities', 
+                              headers=headers, params=params)
+        if response.status_code == 200:
+            activities = response.json()
+            if activities:
+                activity = activities[0]
+                # Only return running activities
+                if activity.get('type') in ['Run', 'TrailRun', 'VirtualRun']:
+                    return activity
+    except:
+        pass
+    return None
+
+def enrich_songs_with_spotify_data(songs):
+    """Add Spotify metadata to songs"""
+    spotify_token = get_spotify_access_token()
+    if not spotify_token:
+        return songs
+    
+    enriched_songs = []
+    for song in songs:
+        spotify_data = search_spotify_track(song['name'], song['artist'], spotify_token)
+        if spotify_data:
+            enriched_song = {
+                **song,
+                'cover_art': spotify_data['cover_art'],
+                'spotify_url': spotify_data['spotify_url'],
+                'preview_url': spotify_data['preview_url']
+            }
+        else:
+            enriched_song = song
+        enriched_songs.append(enriched_song)
+    
+    return enriched_songs
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
