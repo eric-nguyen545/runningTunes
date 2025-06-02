@@ -8,7 +8,7 @@ export default function Home() {
   const [status, setStatus] = useState('Loading...');
   const [lastRun, setLastRun] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Load current user status
   useEffect(() => {
