@@ -31,7 +31,7 @@ def log_current_track():
         song = {
             'name': current['item']['name'],
             'artist': current['item']['artists'][0]['name'],
-            'played_at': datetime.now(timezone.utc).isoformat() + 'Z'
+            'played_at': datetime.now(timezone.utc).isoformat()
         }
 
         if not logged_songs or song != logged_songs[-1]:

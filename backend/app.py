@@ -142,7 +142,7 @@ def mark_activity_processed(activity_id):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('INSERT OR REPLACE INTO processed_activities (id, updated_at) VALUES (?, ?)',
-              (activity_id, datetime.now(timezone.utc).isoformat() + 'Z'))
+              (activity_id, datetime.now(timezone.utc).isoformat()))
     conn.commit()
     conn.close()
 
@@ -255,14 +255,15 @@ def webhook():
         return 'Verification failed', 403
 
     if request.method == 'POST':
-        # Only try to get JSON for POST requests
         try:
             event = request.get_json()
+            print(f"[Webhook] Received event: {event}")
         except Exception as e:
-            print(f"Error parsing JSON: {e}")
+            print(f"[Webhook] Error parsing JSON: {e}")
             return 'Invalid JSON', 400
-            
+
         if not event:
+            print("[Webhook] No event data")
             return 'No data', 400
 
         if event.get('object_type') == 'activity':
@@ -270,32 +271,50 @@ def webhook():
             athlete_id = event.get('owner_id')
             aspect_type = event.get('aspect_type')
 
+            print(f"[Webhook] Activity event detected - ID: {activity_id}, Athlete: {athlete_id}, Aspect: {aspect_type}")
+
             if is_activity_processed(activity_id):
+                print(f"[Webhook] Activity {activity_id} already processed")
                 return 'Already processed', 200
 
             access_token = get_user_access_token(athlete_id)
             if not access_token:
+                print(f"[Webhook] No access token found for athlete {athlete_id}")
                 return 'User not authorized', 403
 
             activity = get_strava_activity(activity_id, access_token)
+            print(f"[Webhook] Fetched activity: {activity}")
+
             if 'start_date' not in activity or 'elapsed_time' not in activity:
+                print(f"[Webhook] Missing required activity fields: {activity}")
                 return 'Invalid activity data', 400
 
             start_time = activity['start_date']
             elapsed = activity['elapsed_time']
             start_dt = datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%SZ')
             end_dt = start_dt + timedelta(seconds=elapsed)
+            print(f"[Webhook] Activity duration: {start_time} to {end_dt.isoformat()}")
 
             songs = get_songs_in_range(start_time, end_dt.strftime('%Y-%m-%dT%H:%M:%SZ'))
-            description = format_description(songs)
+            print(f"[Webhook] Found {len(songs)} songs: {songs}")
 
-            if update_strava_description(activity_id, access_token, description):
+            description = format_description(songs)
+            print(f"[Webhook] Generated description:\n{description}")
+
+            success = update_strava_description(activity_id, access_token, description)
+            print(f"[Webhook] Strava description update status: {success}")
+
+            if success:
                 mark_activity_processed(activity_id)
+                print(f"[Webhook] Activity {activity_id} marked as processed")
                 return 'Updated', 200
             else:
+                print(f"[Webhook] Failed to update description for activity {activity_id}")
                 return 'Failed to update Strava', 500
 
+        print("[Webhook] Event ignored (not activity type)")
         return 'Ignored event', 200
+
     
 # Mock user session example (implement your own login/session)
 @app.route('/api/user')
