@@ -2,7 +2,7 @@ import os
 import json
 import sqlite3
 from datetime import datetime, timedelta, timezone
-from flask import Flask, request, jsonify, redirect, session, send_from_directory
+from flask import Flask, request, jsonify, redirect, session, send_from_directory, make_response
 from flask_cors import CORS
 import requests
 import base64
@@ -243,16 +243,23 @@ def strava_callback():
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
     if request.method == 'GET':
-        # Strava webhook verification
         mode = request.args.get('hub.mode')
         verify_token = request.args.get('hub.verify_token')
         challenge = request.args.get('hub.challenge')
         
         print(f"Verification request - mode: {mode}, token: {verify_token}, challenge: {challenge}")
         
-        if mode == 'subscribe' and verify_token == STRAVA_VERIFY_TOKEN:
-            return challenge
+        if mode == 'subscribe' and verify_token == 'gopherrunclub':
+            print(f"Returning challenge: '{challenge}'")
+            # IMPORTANT: Return as plain text, not HTML
+            response = make_response(challenge)
+            response.headers['Content-Type'] = 'text/plain'
+            return response
+        
+        print("Verification failed!")
         return 'Verification failed', 403
+    
+    # ... rest of your POST handling
 
     if request.method == 'POST':
         try:
