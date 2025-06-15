@@ -297,6 +297,41 @@ def webhook():
 
         return 'Ignored event', 200
 
+@app.route('/api/user')
+def api_user():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT athlete_id FROM users LIMIT 1')
+    row = c.fetchone()
+    conn.close()
+    
+    if not row:
+        return jsonify({'error': 'No user connected'}), 404
+
+    athlete_id = row[0]
+    
+    # Get additional user info from Strava
+    access_token = get_user_access_token(athlete_id)
+    user_info = {'athlete_id': athlete_id}
+    
+    if access_token:
+        headers = {'Authorization': f'Bearer {access_token}'}
+        try:
+            response = requests.get('https://www.strava.com/api/v3/athlete', headers=headers)
+            if response.status_code == 200:
+                athlete_data = response.json()
+                user_info.update({
+                    'athlete_name': f"{athlete_data.get('firstname', '')} {athlete_data.get('lastname', '')}".strip(),
+                    'profile_pic': athlete_data.get('profile'),
+                    'city': athlete_data.get('city'),
+                    'state': athlete_data.get('state'),
+                    'country': athlete_data.get('country')
+                })
+        except:
+            pass
+    
+    return jsonify(user_info)
+
 # Add this new route for getting the last run with songs
 @app.route('/api/last-run')
 def api_last_run():
