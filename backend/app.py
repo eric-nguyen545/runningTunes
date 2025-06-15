@@ -243,25 +243,24 @@ def strava_callback():
 @app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
     if request.method == 'GET':
+        # Strava webhook verification
         mode = request.args.get('hub.mode')
         verify_token = request.args.get('hub.verify_token')
         challenge = request.args.get('hub.challenge')
         
         print(f"Verification request - mode: {mode}, token: {verify_token}, challenge: {challenge}")
         
-        if mode == 'subscribe' and verify_token == 'gopherrunclub':
+        if mode == 'subscribe' and verify_token == STRAVA_VERIFY_TOKEN:
             print(f"Returning challenge: '{challenge}'")
-            # IMPORTANT: Return as plain text, not HTML
-            response = make_response(challenge)
+            # Return the challenge as plain text with explicit content type
+            response = make_response(str(challenge))
             response.headers['Content-Type'] = 'text/plain'
             return response
-        
-        print("Verification failed!")
-        return 'Verification failed', 403
-    
-    # ... rest of your POST handling
+        else:
+            print("Verification failed!")
+            return make_response('Verification failed', 403)
 
-    if request.method == 'POST':
+    elif request.method == 'POST':
         try:
             event = request.get_json()
             print(f"[Webhook] Received event: {event}")
@@ -280,6 +279,11 @@ def webhook():
 
             print(f"[Webhook] Activity event detected - ID: {activity_id}, Athlete: {athlete_id}, Aspect: {aspect_type}")
 
+            # Only process 'create' events to avoid duplicate processing
+            if aspect_type != 'create':
+                print(f"[Webhook] Ignoring aspect_type: {aspect_type}")
+                return 'Ignored non-create event', 200
+
             if is_activity_processed(activity_id):
                 print(f"[Webhook] Activity {activity_id} already processed")
                 return 'Already processed', 200
@@ -295,6 +299,11 @@ def webhook():
             if 'start_date' not in activity or 'elapsed_time' not in activity:
                 print(f"[Webhook] Missing required activity fields: {activity}")
                 return 'Invalid activity data', 400
+
+            # Only process running activities
+            if activity.get('type') not in ['Run', 'TrailRun', 'VirtualRun']:
+                print(f"[Webhook] Ignoring non-running activity type: {activity.get('type')}")
+                return 'Non-running activity ignored', 200
 
             start_time = activity['start_date']
             elapsed = activity['elapsed_time']
