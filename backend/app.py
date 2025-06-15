@@ -176,23 +176,6 @@ def format_description(songs):
 
 # ============ Routes ============
 
-@app.route('/strava/register-webhook')
-def register_strava_webhook():
-    payload = {
-        'client_id': CLIENT_ID,
-        'client_secret': CLIENT_SECRET,
-        'callback_url': f'{BACKEND_URL}/webhook',
-        'verify_token': STRAVA_VERIFY_TOKEN
-    }
-
-    try:
-        response = requests.post('https://www.strava.com/api/v3/push_subscriptions', data=payload)
-        print(f"[Webhook Registration] Response: {response.status_code} - {response.text}")
-        return response.text, response.status_code
-    except Exception as e:
-        return f'Error registering webhook: {e}', 500
-
-
 @app.route('/debug/config')
 def debug_config():
     return jsonify({
@@ -268,7 +251,7 @@ def webhook():
         print(f"Verification request - mode: {mode}, token: {verify_token}, challenge: {challenge}")
         
         if mode == 'subscribe' and verify_token == STRAVA_VERIFY_TOKEN:
-            return jsonify({'hub.challenge': challenge})
+            return challenge
         return 'Verification failed', 403
 
     if request.method == 'POST':
