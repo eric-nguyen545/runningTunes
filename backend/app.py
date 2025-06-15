@@ -360,6 +360,16 @@ def api_last_run():
     
     # Enrich songs with Spotify metadata
     enriched_songs = enrich_songs_with_spotify_data(songs)
+
+    # Deduplicate songs using name+artist as unique key
+    unique_songs = {}
+    for song in enriched_songs:
+        key = f"{song.get('name', '')}|{song.get('artist', '')}"
+        if key not in unique_songs:
+            unique_songs[key] = song
+    
+    # Convert back to list
+    deduplicated_songs = list(unique_songs.values())
     
     # Add songs to the run data
     run_data = {
@@ -375,7 +385,7 @@ def api_last_run():
         'max_speed': last_run.get('max_speed'),
         'average_heartrate': last_run.get('average_heartrate'),
         'max_heartrate': last_run.get('max_heartrate'),
-        'songs': enriched_songs
+        'songs': deduplicated_songs
     }
     
     return jsonify(run_data)
